@@ -21,9 +21,8 @@
 
         <jetty.version>9.4.15.v20190215</jetty.version>
         <jersey.version>1.19.4</jersey.version>
-        <jackson.version>1.9.6</jackson.version>
-        <guice.version>4.2.2</guice.version>
         <jackson.version>2.9.8</jackson.version>
+        <guice.version>4.2.2</guice.version>
         <hsqldb.version>2.4.0</hsqldb.version>
         <hikaricp.version>3.3.0</hikaricp.version>
 
