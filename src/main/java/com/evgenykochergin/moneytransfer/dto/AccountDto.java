@@ -1,7 +1,7 @@
 package com.evgenykochergin.moneytransfer.dto;
 
 import com.evgenykochergin.moneytransfer.model.Account;
-import lombok.*;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.UUID;

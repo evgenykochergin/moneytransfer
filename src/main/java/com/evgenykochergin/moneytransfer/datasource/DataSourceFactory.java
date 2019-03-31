@@ -1,4 +1,4 @@
-package com.evgenykochergin.moneytransfer.persistance;
+package com.evgenykochergin.moneytransfer.datasource;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

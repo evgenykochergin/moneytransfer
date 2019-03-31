@@ -1,7 +1,7 @@
 package com.evgenykochergin.moneytransfer.guice.module;
 
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
-import com.evgenykochergin.moneytransfer.persistance.DataSourceFactory;
+import com.evgenykochergin.moneytransfer.datasource.DataSourceFactory;
 import com.evgenykochergin.moneytransfer.persistance.TransactionManager;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcConnectionHolder;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFactory;
