@@ -6,6 +6,8 @@ import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFacto
 import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.repository.exception.EntityNotFountException;
 import com.evgenykochergin.moneytransfer.repository.exception.OptimisticLockException;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import javax.inject.Inject;
 import java.sql.ResultSet;
@@ -31,6 +33,13 @@ public class JdbcAccountRepository implements AccountRepository {
     private static final String DELETE_QUERY =
             "DELETE FROM ACCOUNT WHERE ID=?";
 
+    @AllArgsConstructor
+    private enum AccountColumn {
+        ID("ID"), BALANCE("BALANCE"), VERSION("VERSION");
+
+        @Getter
+        private final String name;
+    }
 
     private final JdbcTransactionalFactory jdbcTransactionalFactory;
 
@@ -89,10 +98,7 @@ public class JdbcAccountRepository implements AccountRepository {
             if (statement.executeUpdate() == 0) {
                 throw new OptimisticLockException(account.getId(), Account.class);
             }
-            return Account
-                    .builder()
-                    .id(account.getId())
-                    .amount(account.getAmount())
+            return account.toBuilder()
                     .version(account.getVersion() + 1)
                     .build();
         }).execute();
@@ -110,11 +116,10 @@ public class JdbcAccountRepository implements AccountRepository {
 
     private Account createAccount(ResultSet resultSet) throws SQLException {
         return Account.builder()
-                .id((UUID) resultSet.getObject("ID"))
-                .amount(Amount.of(resultSet.getBigDecimal("BALANCE")))
-                .version(resultSet.getInt("VERSION"))
+                .id((UUID) resultSet.getObject(AccountColumn.ID.getName()))
+                .amount(Amount.of(resultSet.getBigDecimal(AccountColumn.BALANCE.getName())))
+                .version(resultSet.getInt(AccountColumn.VERSION.getName()))
                 .build();
     }
-
 
 }
