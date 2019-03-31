@@ -22,6 +22,7 @@ import java.util.UUID;
 import static java.util.stream.Collectors.toList;
 
 @Path("/account")
+@Produces(MediaType.APPLICATION_JSON)
 public class AccountRestEndpoint {
     private final AccountService accountService;
 
@@ -31,21 +32,18 @@ public class AccountRestEndpoint {
     }
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
     public Collection<AccountResponseDto> getAll() {
         return accountService.getAll().stream().map(AccountResponseDto::of).collect(toList());
     }
 
     @GET
     @Path("/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
     public AccountResponseDto get(@PathParam("id") UUID id) {
         return AccountResponseDto.of(accountService.get(id));
     }
 
     @DELETE
     @Path("/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
     public Response delete(@PathParam("id") UUID id) {
         accountService.remove(id);
         return Response.ok().build();
@@ -53,7 +51,6 @@ public class AccountRestEndpoint {
 
 
     @POST
-    @Produces(MediaType.APPLICATION_JSON)
     public Response create(AccountRequestDto account) {
         Account createdAccount = accountService.add(Account
                 .builder()
@@ -67,7 +64,6 @@ public class AccountRestEndpoint {
 
     @POST
     @Path("/{id}/transfer")
-    @Produces(MediaType.APPLICATION_JSON)
     public Response transfer(@PathParam("id") UUID from, AccountTransferDto accountTransfer) {
         accountService.transfer(from, accountTransfer.getTo(), Amount.of(accountTransfer.getAmount()));
         return Response.status(Response.Status.ACCEPTED)
