@@ -2,6 +2,7 @@ package com.evgenykochergin.moneytransfer;
 
 import com.evgenykochergin.moneytransfer.guice.module.CoreModule;
 import com.evgenykochergin.moneytransfer.guice.module.GuiceServetModule;
+import com.evgenykochergin.moneytransfer.guice.module.AccountModule;
 import com.evgenykochergin.moneytransfer.webserver.WebServer;
 import com.google.inject.Guice;
 
@@ -12,7 +13,8 @@ public class Application {
                 8080,
                 () -> Guice.createInjector(
                         new GuiceServetModule(),
-                        new CoreModule())
+                        new CoreModule(),
+                        new AccountModule())
         ).start();
     }
 
