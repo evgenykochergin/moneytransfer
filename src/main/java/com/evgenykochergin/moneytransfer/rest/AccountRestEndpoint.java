@@ -8,6 +8,7 @@ import com.evgenykochergin.moneytransfer.model.Amount;
 import com.evgenykochergin.moneytransfer.service.AccountService;
 
 import javax.inject.Inject;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -40,6 +41,14 @@ public class AccountRestEndpoint {
     @Produces(MediaType.APPLICATION_JSON)
     public AccountResponseDto get(@PathParam("id") UUID id) {
         return AccountResponseDto.of(accountService.get(id));
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response delete(@PathParam("id") UUID id) {
+        accountService.remove(id);
+        return Response.ok().build();
     }
 
 
