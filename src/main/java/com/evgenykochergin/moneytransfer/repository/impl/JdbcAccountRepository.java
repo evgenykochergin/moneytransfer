@@ -25,7 +25,7 @@ public class JdbcAccountRepository implements AccountRepository {
             "SELECT * FROM ACCOUNT";
 
     private static final String SAVE_QUERY =
-            "INSERT INTO ACCOUNT (ID, AMOUNT, VERSION) VALUES (?, ?, ?, ?)";
+            "INSERT INTO ACCOUNT (ID, AMOUNT, VERSION) VALUES (?, ?, ?)";
 
     private static final String UPDATE_QUERY =
             "UPDATE ACCOUNT SET AMOUNT=?, VERSION=VERSION+1 WHERE ID=? AND VERSION=?";
@@ -35,7 +35,7 @@ public class JdbcAccountRepository implements AccountRepository {
 
     @AllArgsConstructor
     private enum AccountColumn {
-        ID("ID"), BALANCE("BALANCE"), VERSION("VERSION");
+        ID("ID"), AMOUNT("AMOUNT"), VERSION("VERSION");
 
         @Getter
         private final String name;
@@ -117,7 +117,7 @@ public class JdbcAccountRepository implements AccountRepository {
     private Account createAccount(ResultSet resultSet) throws SQLException {
         return Account.builder()
                 .id((UUID) resultSet.getObject(AccountColumn.ID.getName()))
-                .amount(Amount.of(resultSet.getBigDecimal(AccountColumn.BALANCE.getName())))
+                .amount(Amount.of(resultSet.getBigDecimal(AccountColumn.AMOUNT.getName())))
                 .version(resultSet.getInt(AccountColumn.VERSION.getName()))
                 .build();
     }
