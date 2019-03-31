@@ -7,11 +7,11 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Value
-public class AccountDto {
+public class AccountResponseDto {
     private final UUID id;
     private final BigDecimal amount;
 
-    public static AccountDto of(Account account) {
-        return new AccountDto(account.getId(), account.getAmount().getValue());
+    public static AccountResponseDto of(Account account) {
+        return new AccountResponseDto(account.getId(), account.getAmount().getValue());
     }
 }

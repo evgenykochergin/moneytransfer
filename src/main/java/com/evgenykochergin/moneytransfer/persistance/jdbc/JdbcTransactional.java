@@ -24,7 +24,7 @@ public class JdbcTransactional<T> {
         try (PreparedStatement preparedStatement = connectionHolder.getConnection().prepareStatement(query)) {
             return statement.getResult(preparedStatement);
         } catch (SQLException e) {
-            throw new ApplicationException("Cant execute query: ", e);
+            throw new ApplicationException("Cant execute query: " + query, e);
         }
     }
 }
