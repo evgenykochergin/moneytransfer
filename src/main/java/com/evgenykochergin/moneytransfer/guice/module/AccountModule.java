@@ -27,7 +27,7 @@ public class AccountModule extends AbstractModule {
     }
 
     @Inject
-    void addTestData(AccountService accountService) {
+    private void addTestData(AccountService accountService) {
         IntStream.range(1, 5).forEach((a) -> accountService.add(createRandomAccount()));
     }
 
