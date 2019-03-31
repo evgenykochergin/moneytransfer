@@ -23,7 +23,7 @@
         <jersey.version>1.19.4</jersey.version>
         <jackson.version>2.9.8</jackson.version>
         <guice.version>4.2.2</guice.version>
-        <hsqldb.version>2.4.0</hsqldb.version>
+        <h2.version>1.4.199</h2.version>
         <hikaricp.version>3.3.0</hikaricp.version>
 
         <!--provided dependencies-->
@@ -75,10 +75,11 @@
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <version>${hsqldb.version}</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${h2.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>

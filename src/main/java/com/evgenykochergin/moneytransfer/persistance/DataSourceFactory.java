@@ -14,8 +14,8 @@ public class DataSourceFactory {
      */
     public static DataSource createDataSource() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:hsqldb:mem:mymemdb");
-        config.setUsername("SA");
+        config.setJdbcUrl("jdbc:h2:mem:db;INIT=RUNSCRIPT FROM 'classpath:scripts/create-scheme.sql'");
+        config.setUsername("sa");
         config.setPassword("");
         return new HikariDataSource(config);
     }
