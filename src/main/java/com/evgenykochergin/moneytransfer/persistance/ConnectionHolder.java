@@ -31,7 +31,8 @@ public class ConnectionHolder {
 
     public void closeConnection() {
         Connection connection = holder.get();
-        if (connection == null) throw new ConnectionHolderCloseConnectionException("Cannot close not opened connection");
+        if (connection == null)
+            throw new ConnectionHolderCloseConnectionException("Cannot close not opened connection");
         try {
             connection.close();
         } catch (SQLException e) {
@@ -39,5 +40,9 @@ public class ConnectionHolder {
         } finally {
             holder.set(null);
         }
+    }
+
+    boolean hasConnection() {
+        return holder.get() != null;
     }
 }
