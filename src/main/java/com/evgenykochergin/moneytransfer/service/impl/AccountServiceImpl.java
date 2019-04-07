@@ -60,8 +60,8 @@ public class AccountServiceImpl implements AccountService {
             Account accountTo = accountRepository.find(to);
 
             try {
-                Account accountFromToUpdate = accountFrom.deposit(amount);
-                Account accountToToUpdate = accountTo.withdraw(amount);
+                Account accountFromToUpdate = accountFrom.withdraw(amount);
+                Account accountToToUpdate = accountTo.deposit(amount);
                 accountRepository.update(accountFromToUpdate);
                 accountRepository.update(accountToToUpdate);
             } catch (NegativeAmountException e) {

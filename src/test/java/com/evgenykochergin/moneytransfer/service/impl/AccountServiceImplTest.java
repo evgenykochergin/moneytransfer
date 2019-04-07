@@ -3,25 +3,37 @@ package com.evgenykochergin.moneytransfer.service.impl;
 import com.evgenykochergin.moneytransfer.datasource.DataSourceFactory;
 import com.evgenykochergin.moneytransfer.model.Account;
 import com.evgenykochergin.moneytransfer.model.Amount;
+import com.evgenykochergin.moneytransfer.model.exception.AccountWithdrawNotEnoughAmountException;
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
 import com.evgenykochergin.moneytransfer.persistance.TransactionManagement;
+import com.evgenykochergin.moneytransfer.persistance.exception.TransactionException;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFactory;
 import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.repository.impl.JdbcAccountRepository;
 import com.evgenykochergin.moneytransfer.service.AccountService;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.UUID;
 
 import static junit.framework.TestCase.assertSame;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasProperty;
 
 public class AccountServiceImplTest {
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     private AccountService accountService;
 
@@ -66,6 +78,57 @@ public class AccountServiceImplTest {
         assertThat(getAccount.getVersion(), equalTo(accountToUpdate.getVersion() + 1));
     }
 
+    @Test
+    public void canRemoveAccounts() {
+        Account accountToCreate1 = createAccount(1);
+        Account accountToCreate2 = createAccount(2);
+
+        accountService.add(accountToCreate1);
+        accountService.add(accountToCreate2);
+        Collection<Account> accountsAfterAdd = accountService.getAll();
+        assertThat(accountsAfterAdd, containsInAnyOrder(accountToCreate1, accountToCreate2));
+        assertSame(2, accountsAfterAdd.size());
+
+        accountService.remove(accountToCreate1.getId());
+        Collection<Account> accountsAfterRemove = accountService.getAll();
+        assertThat(accountsAfterRemove, containsInAnyOrder(accountToCreate2));
+        assertSame(1, accountsAfterRemove.size());
+    }
+
+    @Test
+    public void canTransfer() {
+        Account accountToCreate1 = createAccount(1000);
+        Account accountToCreate2 = createAccount(500);
+
+        accountService.add(accountToCreate1);
+        accountService.add(accountToCreate2);
+
+        accountService.transfer(accountToCreate1.getId(), accountToCreate2.getId(), Amount.of(new BigDecimal(200)));
+
+        assertThat(accountService.get(accountToCreate1.getId()).getAmount(), equalTo(Amount.of(new BigDecimal(800))));
+        assertThat(accountService.get(accountToCreate2.getId()).getAmount(), equalTo(Amount.of(new BigDecimal(700))));
+    }
+
+    @Test
+    public void cannotTransferWithExceededAmount() {
+        Account accountToCreate1 = createAccount(1000);
+        Account accountToCreate2 = createAccount(500);
+
+        exception.expect(TransactionException.class);
+        exception.expectMessage(containsString("Error in transaction"));
+        exception.expectCause(allOf(
+                isA(AccountWithdrawNotEnoughAmountException.class),
+                hasProperty("message",
+                        is("Not enough amount to withdraw for account with id " + accountToCreate1.getId()))
+        ));
+
+
+        accountService.add(accountToCreate1);
+        accountService.add(accountToCreate2);
+
+        accountService.transfer(accountToCreate1.getId(), accountToCreate2.getId(), Amount.of(new BigDecimal(2000)));
+
+    }
 
     private Account createAccount(int amountValue) {
         return Account.builder()
