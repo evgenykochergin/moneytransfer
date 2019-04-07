@@ -8,9 +8,7 @@ import com.evgenykochergin.moneytransfer.model.exception.AccountWithdrawNotEnoug
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
 import com.evgenykochergin.moneytransfer.persistance.TransactionManagement;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFactory;
-import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalStatement;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.OptimisticLockException;
-import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.repository.impl.JdbcAccountRepository;
 import com.evgenykochergin.moneytransfer.service.AccountService;
 import org.junit.After;
@@ -21,7 +19,6 @@ import org.junit.rules.ExpectedException;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -224,6 +221,66 @@ public class AccountServiceImplTest {
             assertThat(account1.getVersion(), equalTo(account.getVersion() + 1));
             assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(1))));
         }
+    }
+
+
+    @Test
+    public void throwsOptimisticLockOnConcurrentTransfer() throws Exception {
+        Account accountToCreate1 = createAccount(1000);
+        Account accountToCreate2 = createAccount(500);
+
+        accountService.add(accountToCreate1);
+        accountService.add(accountToCreate2);
+
+        AtomicBoolean optimistiocLockOnTransfer1 = new AtomicBoolean(false);
+        AtomicBoolean optimistiocLockOnTransfer2 = new AtomicBoolean(false);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        Collection<Callable<Account>> tasks = Arrays.asList(
+                () -> {
+                    try {
+                        accountService.transfer(
+                                accountToCreate1,
+                                accountToCreate2,
+                                Amount.of(new BigDecimal(100)));
+                    } catch (OptimisticLockException e) {
+                        optimistiocLockOnTransfer1.set(true);
+                    }
+                    return accountService.get(accountToCreate1.getId());
+                },
+                () -> {
+                    try {
+                        accountService.transfer(
+                                accountToCreate1,
+                                accountToCreate2,
+                                Amount.of(new BigDecimal(200)));
+                    } catch (OptimisticLockException e) {
+                        optimistiocLockOnTransfer2.set(true);
+                    }
+                    return accountService.get(accountToCreate2.getId());
+                }
+        );
+        List<Future<Account>> futures = executorService.invokeAll(tasks);
+        Account account1 = futures.get(0).get();
+        Account account2 = futures.get(1).get();
+
+        if (!optimistiocLockOnTransfer1.get() && !optimistiocLockOnTransfer2.get()) {
+            fail("Optimistic lock did not happen");
+        }
+
+        assertThat(account1.getVersion(), equalTo(accountToCreate1.getVersion() + 1));
+        assertThat(account2.getVersion(), equalTo(accountToCreate2.getVersion() + 1));
+
+        if (optimistiocLockOnTransfer1.get()) {
+            assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(800))));
+            assertThat(account2.getAmount(), equalTo(Amount.of(new BigDecimal(700))));
+        }
+
+        if (optimistiocLockOnTransfer2.get()) {
+            assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(900))));
+            assertThat(account2.getAmount(), equalTo(Amount.of(new BigDecimal(600))));
+        }
+
     }
 
     private Account createAccount(int amountValue) {

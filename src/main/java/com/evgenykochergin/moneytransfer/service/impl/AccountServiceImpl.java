@@ -56,20 +56,28 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void transfer(UUID from, UUID to, Amount amount) {
         transactionManagement.doInTransaction(() -> {
-            Account accountFrom = accountRepository.find(from);
-            Account accountTo = accountRepository.find(to);
-
-            try {
-                Account accountFromToUpdate = accountFrom.withdraw(amount);
-                Account accountToToUpdate = accountTo.deposit(amount);
-                accountRepository.update(accountFromToUpdate);
-                accountRepository.update(accountToToUpdate);
-            } catch (NegativeAmountException e) {
-                throw new AccountWithdrawNotEnoughAmountException(accountFrom.getId(), e);
-            }
-
+            tryTransfer(accountRepository.find(from), accountRepository.find(to), amount);
             return null;
         });
+    }
+
+    @Override
+    public void transfer(Account from, Account to, Amount amount) {
+        transactionManagement.doInTransaction(() -> {
+            tryTransfer(from, to, amount);
+            return null;
+        });
+    }
+
+    private void tryTransfer(Account from, Account to, Amount amount) {
+        try {
+            Account accountFromToUpdate = from.withdraw(amount);
+            Account accountToToUpdate = to.deposit(amount);
+            accountRepository.update(accountFromToUpdate);
+            accountRepository.update(accountToToUpdate);
+        } catch (NegativeAmountException e) {
+            throw new AccountWithdrawNotEnoughAmountException(from.getId(), e);
+        }
     }
 
 }

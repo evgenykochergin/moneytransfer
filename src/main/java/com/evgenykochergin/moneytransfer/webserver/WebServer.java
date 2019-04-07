@@ -10,24 +10,30 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import javax.servlet.DispatcherType;
 import java.util.EnumSet;
 
-public class WebServer {
-
-    private final int port;
+public class WebServer implements AutoCloseable {
     private final InjectorProvider injectorProvider;
+    private final Server server;
 
-    public WebServer(int port, InjectorProvider injectorProvider) {
-        this.port = port;
+    private WebServer(InjectorProvider injectorProvider, Server server) {
         this.injectorProvider = injectorProvider;
+        this.server = server;
     }
 
-    public void start() throws Exception {
+    public static WebServer start(int port, InjectorProvider injectorProvider) throws Exception {
         Server server = new Server(port);
-        configureServer(server);
-        server.start();
+        WebServer webServer = new WebServer(injectorProvider, server);
+        webServer.configureServer();
+        webServer.startServer();
+        return webServer;
     }
 
 
-    private void configureServer(Server server) {
+    public void close() throws Exception {
+        this.server.stop();
+    }
+
+
+    private void configureServer() {
         ServletContextHandler root = new ServletContextHandler(server, "/", ServletContextHandler.SESSIONS);
         root.addEventListener(new GuiceServletContextListener() {
             @Override
@@ -38,5 +44,10 @@ public class WebServer {
         root.addFilter(GuiceFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
         root.addServlet(EmptyServlet.class, "/*");
     }
+
+    private void startServer() throws Exception {
+        this.server.start();
+    }
+
 }
 

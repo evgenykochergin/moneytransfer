@@ -95,8 +95,6 @@ public class AccountRestEndpoint {
                     .entity(new AccountTransferConcurrentDto("Concurrent transfer, try again", from, accountTransfer.getTo()))
                     .build();
         }
-        return Response.status(Response.Status.ACCEPTED)
-                .entity(AccountResponseDto.of(accountService.get(from)))
-                .build();
+        return Response.status(Response.Status.ACCEPTED).build();
     }
 }

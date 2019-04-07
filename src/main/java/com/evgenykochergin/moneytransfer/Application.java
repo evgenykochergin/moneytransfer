@@ -10,14 +10,14 @@ import com.google.inject.Guice;
 public class Application {
 
     public static void main(String[] args) throws Exception {
-        new WebServer(
+        WebServer.start(
                 8080,
                 () -> Guice.createInjector(
                         new GuiceServetModule(),
                         new CoreModule(),
                         new AccountModule(),
                         new TestDataAccountModule())
-        ).start();
+        );
     }
 
 

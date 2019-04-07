@@ -20,4 +20,6 @@ public interface AccountService {
 
     void transfer(UUID from, UUID to, Amount amount);
 
+    void transfer(Account from, Account to, Amount amount);
+
 }

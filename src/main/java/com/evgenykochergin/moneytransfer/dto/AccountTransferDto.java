@@ -13,7 +13,8 @@ public class AccountTransferDto {
     private final BigDecimal amount;
 
     @JsonCreator
-    public AccountTransferDto(@JsonProperty("to") UUID to, @JsonProperty("amount") BigDecimal amount) {
+    public AccountTransferDto(@JsonProperty("to") UUID to,
+                              @JsonProperty("amount") BigDecimal amount) {
         this.to = to;
         this.amount = amount;
     }
