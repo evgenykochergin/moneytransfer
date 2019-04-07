@@ -11,6 +11,7 @@ import com.evgenykochergin.moneytransfer.repository.exception.EntityNotFountExce
 import com.evgenykochergin.moneytransfer.service.AccountService;
 
 import javax.inject.Inject;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -26,6 +27,7 @@ import static java.util.stream.Collectors.toList;
 
 @Path("/account")
 @Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
 public class AccountRestEndpoint {
 
     private final AccountService accountService;

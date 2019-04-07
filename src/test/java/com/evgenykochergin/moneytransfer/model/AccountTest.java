@@ -19,14 +19,14 @@ public class AccountTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    private final Account testAcccount = Account.builder()
+    private final Account testAccount = Account.builder()
             .id(UUID.randomUUID())
             .amount(Amount.of(new BigDecimal(10)))
             .build();
 
     @Test
     public void deposit() {
-        Account depositedAccount = testAcccount.deposit(Amount.of(new BigDecimal(1)));
+        Account depositedAccount = testAccount.deposit(Amount.of(new BigDecimal(1)));
         assertThat(depositedAccount.getAmount(), equalTo(Amount.of(new BigDecimal(11))));
     }
 
@@ -34,19 +34,19 @@ public class AccountTest {
     public void depositZero() {
         exception.expect(AccountDepositZeroAmountException.class);
         exception.expectMessage(containsString(
-                "Cannot deposit zero amount for account with id " + testAcccount.getId()));
-        Account depositedAccount = testAcccount.deposit(Amount.of(BigDecimal.ZERO));
+                "Cannot deposit zero amount for account with id " + testAccount.getId()));
+        Account depositedAccount = testAccount.deposit(Amount.of(BigDecimal.ZERO));
     }
 
     @Test
     public void withdraw() {
-        Account withdrawnAccount = testAcccount.withdraw(Amount.of(new BigDecimal(1)));
+        Account withdrawnAccount = testAccount.withdraw(Amount.of(new BigDecimal(1)));
         assertThat(withdrawnAccount.getAmount(), equalTo(Amount.of(new BigDecimal(9))));
     }
 
     @Test
     public void withdrawAll() {
-        Account withdrawnAccount = testAcccount.withdraw(Amount.of(new BigDecimal(10)));
+        Account withdrawnAccount = testAccount.withdraw(Amount.of(new BigDecimal(10)));
         assertThat(withdrawnAccount.getAmount(), equalTo(Amount.of(BigDecimal.ZERO)));
     }
 
@@ -54,8 +54,8 @@ public class AccountTest {
     public void accountWithdrawException() {
         exception.expect(AccountWithdrawNotEnoughAmountException.class);
         exception.expectMessage(containsString(
-                "Not enough amount to withdraw for account with id " + testAcccount.getId()));
-        Account withdrawnAccount = testAcccount.withdraw(Amount.of(new BigDecimal(20)));
+                "Not enough amount to withdraw for account with id " + testAccount.getId()));
+        Account withdrawnAccount = testAccount.withdraw(Amount.of(new BigDecimal(20)));
         assertThat(withdrawnAccount.getAmount(), equalTo(Amount.of(BigDecimal.ZERO)));
     }
 
