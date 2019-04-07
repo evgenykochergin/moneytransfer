@@ -2,9 +2,11 @@ package com.evgenykochergin.moneytransfer.service.impl;
 
 import com.evgenykochergin.moneytransfer.model.Account;
 import com.evgenykochergin.moneytransfer.model.Amount;
-import com.evgenykochergin.moneytransfer.persistance.TransactionManager;
+import com.evgenykochergin.moneytransfer.model.exception.NegativeAmountException;
+import com.evgenykochergin.moneytransfer.persistance.TransactionManagement;
 import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.service.AccountService;
+import com.evgenykochergin.moneytransfer.model.exception.AccountWithdrawNotEnoughAmountException;
 
 import javax.inject.Inject;
 import java.util.Collection;
@@ -12,40 +14,40 @@ import java.util.UUID;
 
 public class AccountServiceImpl implements AccountService {
 
-    private final TransactionManager transactionManager;
+    private final TransactionManagement transactionManagement;
 
     private final AccountRepository accountRepository;
 
     @Inject
-    public AccountServiceImpl(TransactionManager transactionManager, AccountRepository accountRepository) {
-        this.transactionManager = transactionManager;
+    public AccountServiceImpl(TransactionManagement transactionManagement, AccountRepository accountRepository) {
+        this.transactionManagement = transactionManagement;
         this.accountRepository = accountRepository;
     }
 
     @Override
     public Account get(UUID id) {
-        return transactionManager.doInTransaction(() -> accountRepository.find(id));
+        return transactionManagement.doInTransaction(() -> accountRepository.find(id));
     }
 
     @Override
     public Collection<Account> getAll() {
-        return transactionManager.doInTransaction(accountRepository::findAll);
+        return transactionManagement.doInTransaction(accountRepository::findAll);
     }
 
     @Override
     public Account add(Account account) {
-        return transactionManager.doInTransaction(() -> accountRepository.save(account));
+        return transactionManagement.doInTransaction(() -> accountRepository.save(account));
 
     }
 
     @Override
     public Account update(Account account) {
-        return transactionManager.doInTransaction(() -> accountRepository.update(account));
+        return transactionManagement.doInTransaction(() -> accountRepository.update(account));
     }
 
     @Override
     public void remove(UUID id) {
-        transactionManager.doInTransaction(() -> {
+        transactionManagement.doInTransaction(() -> {
             accountRepository.delete(id);
             return null;
         });
@@ -53,23 +55,19 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void transfer(UUID from, UUID to, Amount amount) {
-        transactionManager.doInTransaction(() -> {
+        transactionManagement.doInTransaction(() -> {
             Account accountFrom = accountRepository.find(from);
             Account accountTo = accountRepository.find(to);
-            Amount amountFrom = accountFrom.getAmount();
-            Amount amountTo = accountTo.getAmount();
-            if (amountFrom.getValue().compareTo(amount.getValue()) >= 0) {
-                Account updatedAccountFrom = accountFrom
-                        .toBuilder()
-                        .amount(Amount.of(amountFrom.getValue().subtract(amount.getValue())))
-                        .build();
-                Account updatedAccountTo = accountTo
-                        .toBuilder()
-                        .amount(Amount.of(amountTo.getValue().add(amount.getValue())))
-                        .build();
-                accountRepository.update(updatedAccountFrom);
-                accountRepository.update(updatedAccountTo);
+
+            try {
+                Account accountFromToUpdate = accountFrom.deposit(amount);
+                Account accountToToUpdate = accountTo.withdraw(amount);
+                accountRepository.update(accountFromToUpdate);
+                accountRepository.update(accountToToUpdate);
+            } catch (NegativeAmountException e) {
+                throw new AccountWithdrawNotEnoughAmountException(accountFrom.getId(), e);
             }
+
             return null;
         });
     }

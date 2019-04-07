@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 @Path("/account")
 @Produces(MediaType.APPLICATION_JSON)
 public class AccountRestEndpoint {
+
     private final AccountService accountService;
 
     @Inject

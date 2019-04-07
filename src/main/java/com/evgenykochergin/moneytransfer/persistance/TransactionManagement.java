@@ -4,12 +4,12 @@ import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransaction;
 
 import javax.inject.Inject;
 
-public class TransactionManager {
+public class TransactionManagement {
 
     private final ConnectionHolder connectionHolder;
 
     @Inject
-    public TransactionManager(ConnectionHolder connectionHolder) {
+    public TransactionManagement(ConnectionHolder connectionHolder) {
         this.connectionHolder = connectionHolder;
     }
 

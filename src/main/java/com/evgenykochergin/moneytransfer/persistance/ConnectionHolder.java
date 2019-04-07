@@ -1,7 +1,7 @@
 package com.evgenykochergin.moneytransfer.persistance;
 
 import com.evgenykochergin.moneytransfer.exception.ApplicationException;
-import com.evgenykochergin.moneytransfer.persistance.exception.ConnectionHolderCloseConnection;
+import com.evgenykochergin.moneytransfer.persistance.exception.ConnectionHolderCloseConnectionException;
 
 import javax.inject.Inject;
 import javax.sql.DataSource;
@@ -31,7 +31,7 @@ public class ConnectionHolder {
 
     public void closeConnection() {
         Connection connection = holder.get();
-        if (connection == null) throw new ConnectionHolderCloseConnection("Cannot close not opened connection");
+        if (connection == null) throw new ConnectionHolderCloseConnectionException("Cannot close not opened connection");
         try {
             connection.close();
         } catch (SQLException e) {
