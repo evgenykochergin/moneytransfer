@@ -5,7 +5,7 @@ import com.evgenykochergin.moneytransfer.model.Amount;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFactory;
 import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.repository.exception.EntityNotFountException;
-import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.JdbcOptimisticLockException;
+import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.OptimisticLockException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -96,7 +96,7 @@ public class JdbcAccountRepository implements AccountRepository {
             statement.setInt(3, account.getVersion());
 
             if (statement.executeUpdate() == 0) {
-                throw new JdbcOptimisticLockException(account.getId(), Account.class);
+                throw new OptimisticLockException(account.getId(), Account.class);
             }
             return account.toBuilder()
                     .version(account.getVersion() + 1)

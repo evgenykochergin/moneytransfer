@@ -6,6 +6,6 @@ public class EntityNotFountException extends RuntimeException {
 
 
     public EntityNotFountException(UUID id, Class clazz) {
-        super("Entity `" + clazz.getName() + "` not found with id " + id);
+        super("Entity `" + clazz.getSimpleName() + "` not found with id " + id);
     }
 }

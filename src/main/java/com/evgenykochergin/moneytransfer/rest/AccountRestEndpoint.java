@@ -2,9 +2,12 @@ package com.evgenykochergin.moneytransfer.rest;
 
 import com.evgenykochergin.moneytransfer.dto.AccountRequestDto;
 import com.evgenykochergin.moneytransfer.dto.AccountResponseDto;
+import com.evgenykochergin.moneytransfer.dto.AccountTransferConcurrentDto;
 import com.evgenykochergin.moneytransfer.dto.AccountTransferDto;
 import com.evgenykochergin.moneytransfer.model.Account;
 import com.evgenykochergin.moneytransfer.model.Amount;
+import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.OptimisticLockException;
+import com.evgenykochergin.moneytransfer.repository.exception.EntityNotFountException;
 import com.evgenykochergin.moneytransfer.service.AccountService;
 
 import javax.inject.Inject;
@@ -16,7 +19,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import static java.util.stream.Collectors.toList;
@@ -33,21 +36,37 @@ public class AccountRestEndpoint {
     }
 
     @GET
-    public Collection<AccountResponseDto> getAll() {
-        return accountService.getAll().stream().map(AccountResponseDto::of).collect(toList());
+    public Response getAll() {
+        List<AccountResponseDto> accounts = accountService
+                .getAll()
+                .stream()
+                .map(AccountResponseDto::of)
+                .collect(toList());
+        if (accounts.isEmpty()) {
+            return Response.status(Response.Status.NO_CONTENT).build();
+        }
+        return Response.ok(accounts).build();
     }
 
     @GET
     @Path("/{id}")
-    public AccountResponseDto get(@PathParam("id") UUID id) {
-        return AccountResponseDto.of(accountService.get(id));
+    public Response get(@PathParam("id") UUID id) {
+        try {
+            return Response.ok(AccountResponseDto.of(accountService.get(id))).build();
+        } catch (EntityNotFountException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
     }
 
     @DELETE
     @Path("/{id}")
     public Response delete(@PathParam("id") UUID id) {
-        accountService.remove(id);
-        return Response.ok().build();
+        try {
+            accountService.remove(id);
+        } catch (EntityNotFountException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
 
@@ -66,7 +85,16 @@ public class AccountRestEndpoint {
     @POST
     @Path("/{id}/transfer")
     public Response transfer(@PathParam("id") UUID from, AccountTransferDto accountTransfer) {
-        accountService.transfer(from, accountTransfer.getTo(), Amount.of(accountTransfer.getAmount()));
+        try {
+            accountService.transfer(from, accountTransfer.getTo(), Amount.of(accountTransfer.getAmount()));
+        } catch (EntityNotFountException e) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } catch (OptimisticLockException e) {
+            // to many requests
+            return Response.status(429)
+                    .entity(new AccountTransferConcurrentDto("Concurrent transfer, try again", from, accountTransfer.getTo()))
+                    .build();
+        }
         return Response.status(Response.Status.ACCEPTED)
                 .entity(AccountResponseDto.of(accountService.get(from)))
                 .build();

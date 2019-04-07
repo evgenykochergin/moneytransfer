@@ -4,8 +4,6 @@ import com.evgenykochergin.moneytransfer.persistance.exception.TransactionExcept
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
 import com.evgenykochergin.moneytransfer.persistance.Transaction;
 import com.evgenykochergin.moneytransfer.persistance.TransactionCallback;
-import com.evgenykochergin.moneytransfer.persistance.exception.TransactionOptimisticLockException;
-import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.JdbcOptimisticLockException;
 
 import java.sql.Connection;
 
@@ -31,8 +29,8 @@ public class JdbcTransaction<T> implements Transaction<T> {
                 connection.rollback();
                 throw e;
             }
-        } catch (JdbcOptimisticLockException e) {
-            throw new TransactionOptimisticLockException("Optimistic lock in transaction", e);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new TransactionException("Error in transaction", e);
         } finally {

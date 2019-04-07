@@ -7,18 +7,21 @@ import com.evgenykochergin.moneytransfer.model.exception.AccountDepositZeroAmoun
 import com.evgenykochergin.moneytransfer.model.exception.AccountWithdrawNotEnoughAmountException;
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
 import com.evgenykochergin.moneytransfer.persistance.TransactionManagement;
-import com.evgenykochergin.moneytransfer.persistance.exception.TransactionException;
-import com.evgenykochergin.moneytransfer.persistance.exception.TransactionOptimisticLockException;
 import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalFactory;
+import com.evgenykochergin.moneytransfer.persistance.jdbc.JdbcTransactionalStatement;
+import com.evgenykochergin.moneytransfer.persistance.jdbc.exception.OptimisticLockException;
 import com.evgenykochergin.moneytransfer.repository.AccountRepository;
 import com.evgenykochergin.moneytransfer.repository.impl.JdbcAccountRepository;
 import com.evgenykochergin.moneytransfer.service.AccountService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -32,14 +35,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertSame;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.Assert.fail;
 
 public class AccountServiceImplTest {
@@ -47,15 +46,26 @@ public class AccountServiceImplTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
+    private TransactionManagement transactionManagement;
+    private JdbcTransactionalFactory jdbcTransactionalFactory;
     private AccountService accountService;
 
     @Before
     public void setUp() {
         ConnectionHolder connectionHolder = new ConnectionHolder(DataSourceFactory.createDataSource());
-        JdbcTransactionalFactory jdbcTransactionalFactory = new JdbcTransactionalFactory(connectionHolder);
-        AccountRepository accountRepository = new JdbcAccountRepository(jdbcTransactionalFactory);
-        TransactionManagement transactionManagement = new TransactionManagement(connectionHolder);
-        accountService = new AccountServiceImpl(transactionManagement, accountRepository);
+        jdbcTransactionalFactory = new JdbcTransactionalFactory(connectionHolder);
+        transactionManagement = new TransactionManagement(connectionHolder);
+        accountService = new AccountServiceImpl(
+                transactionManagement,
+                new JdbcAccountRepository(jdbcTransactionalFactory));
+    }
+
+    @After
+    public void tearDown() {
+        transactionManagement.doInTransaction(() -> {
+            jdbcTransactionalFactory.create("DROP ALL OBJECTS", PreparedStatement::execute).execute();
+            return null;
+        });
     }
 
     @Test
@@ -131,13 +141,9 @@ public class AccountServiceImplTest {
         Account accountToCreate1 = createAccount(1000);
         Account accountToCreate2 = createAccount(500);
 
-        exception.expect(TransactionException.class);
-        exception.expectMessage(containsString("Error in transaction"));
-        exception.expectCause(allOf(
-                isA(AccountWithdrawNotEnoughAmountException.class),
-                hasProperty("message",
-                        is("Not enough amount to withdraw for account with id " + accountToCreate1.getId()))
-        ));
+        exception.expect(AccountWithdrawNotEnoughAmountException.class);
+        exception.expectMessage(containsString(
+                "Not enough amount to withdraw for account with id " + accountToCreate1.getId()));
 
 
         accountService.add(accountToCreate1);
@@ -155,13 +161,9 @@ public class AccountServiceImplTest {
         Account accountToCreate1 = createAccount(1000);
         Account accountToCreate2 = createAccount(500);
 
-        exception.expect(TransactionException.class);
-        exception.expectMessage(containsString("Error in transaction"));
-        exception.expectCause(allOf(
-                isA(AccountDepositZeroAmountException.class),
-                hasProperty("message",
-                        is("Cannot deposit zero amount for account with id " + accountToCreate2.getId()))
-        ));
+        exception.expect(AccountDepositZeroAmountException.class);
+        exception.expectMessage(containsString(
+                "Cannot deposit zero amount for account with id " + accountToCreate2.getId()));
 
 
         accountService.add(accountToCreate1);
@@ -177,8 +179,8 @@ public class AccountServiceImplTest {
         accountService.add(account);
 
 
-        AtomicBoolean optimistiocLockOnUpdate1 = new AtomicBoolean(false);
-        AtomicBoolean optimistiocLockOnUpdate2 = new AtomicBoolean(false);
+        AtomicBoolean optimisticLockOnUpdate1 = new AtomicBoolean(false);
+        AtomicBoolean optimisticLockOnUpdate2 = new AtomicBoolean(false);
 
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         Collection<Callable<Account>> tasks = Arrays.asList(
@@ -186,8 +188,8 @@ public class AccountServiceImplTest {
                     Account accountToUpdate1 = account.toBuilder().amount(Amount.of(new BigDecimal(1))).build();
                     try {
                         return accountService.update(accountToUpdate1);
-                    } catch (TransactionOptimisticLockException e) {
-                        optimistiocLockOnUpdate1.set(true);
+                    } catch (OptimisticLockException e) {
+                        optimisticLockOnUpdate1.set(true);
                     }
                     return null;
                 },
@@ -195,8 +197,8 @@ public class AccountServiceImplTest {
                     Account accountToUpdate2 = account.toBuilder().amount(Amount.of(new BigDecimal(2))).build();
                     try {
                         return accountService.update(accountToUpdate2);
-                    } catch (TransactionOptimisticLockException e) {
-                        optimistiocLockOnUpdate2.set(true);
+                    } catch (OptimisticLockException e) {
+                        optimisticLockOnUpdate2.set(true);
                     }
                     return null;
                 }
@@ -205,83 +207,23 @@ public class AccountServiceImplTest {
         Account account1 = futures.get(0).get();
         Account account2 = futures.get(1).get();
 
-        if (!optimistiocLockOnUpdate1.get() && !optimistiocLockOnUpdate2.get()) {
+        if (!optimisticLockOnUpdate1.get() && !optimisticLockOnUpdate2.get()) {
             fail("Optimistic lock did not happen");
         }
 
-        if (optimistiocLockOnUpdate1.get()) {
+        if (optimisticLockOnUpdate1.get()) {
             assertNull(account1);
             assertNotNull(account2);
             assertThat(account2.getVersion(), equalTo(account.getVersion() + 1));
             assertThat(account2.getAmount(), equalTo(Amount.of(new BigDecimal(2))));
         }
 
-        if (optimistiocLockOnUpdate2.get()) {
+        if (optimisticLockOnUpdate2.get()) {
             assertNull(account2);
             assertNotNull(account1);
             assertThat(account1.getVersion(), equalTo(account.getVersion() + 1));
             assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(1))));
         }
-    }
-
-
-    @Test
-    public void throwsOptimisticLockOnConcurrentTransfer() throws Exception {
-        Account accountToCreate1 = createAccount(1000);
-        Account accountToCreate2 = createAccount(500);
-
-        accountService.add(accountToCreate1);
-        accountService.add(accountToCreate2);
-
-        AtomicBoolean optimistiocLockOnTransfer1 = new AtomicBoolean(false);
-        AtomicBoolean optimistiocLockOnTransfer2 = new AtomicBoolean(false);
-
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
-        Collection<Callable<Account>> tasks = Arrays.asList(
-                () -> {
-                    try {
-                        accountService.transfer(
-                                accountToCreate1.getId(),
-                                accountToCreate2.getId(),
-                                Amount.of(new BigDecimal(100)));
-                    } catch (TransactionOptimisticLockException e) {
-                        optimistiocLockOnTransfer1.set(true);
-                    }
-                    return accountService.get(accountToCreate1.getId());
-                },
-                () -> {
-                    try {
-                        accountService.transfer(
-                                accountToCreate1.getId(),
-                                accountToCreate2.getId(),
-                                Amount.of(new BigDecimal(200)));
-                    } catch (TransactionOptimisticLockException e) {
-                        optimistiocLockOnTransfer2.set(true);
-                    }
-                    return accountService.get(accountToCreate2.getId());
-                }
-        );
-        List<Future<Account>> futures = executorService.invokeAll(tasks);
-        Account account1 = futures.get(0).get();
-        Account account2 = futures.get(1).get();
-
-        if (!optimistiocLockOnTransfer1.get() && !optimistiocLockOnTransfer2.get()) {
-            fail("Optimistic lock did not happen");
-        }
-
-        assertThat(account1.getVersion(), equalTo(accountToCreate1.getVersion() + 1));
-        assertThat(account2.getVersion(), equalTo(accountToCreate2.getVersion() + 1));
-
-        if (optimistiocLockOnTransfer1.get()) {
-            assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(800))));
-            assertThat(account2.getAmount(), equalTo(Amount.of(new BigDecimal(700))));
-        }
-
-        if (optimistiocLockOnTransfer2.get()) {
-            assertThat(account1.getAmount(), equalTo(Amount.of(new BigDecimal(900))));
-            assertThat(account2.getAmount(), equalTo(Amount.of(new BigDecimal(600))));
-        }
-
     }
 
     private Account createAccount(int amountValue) {
