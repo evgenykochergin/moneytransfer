@@ -3,7 +3,7 @@ package com.evgenykochergin.moneytransfer.persistance.jdbc;
 
 import com.evgenykochergin.moneytransfer.datasource.DataSourceFactory;
 import com.evgenykochergin.moneytransfer.persistance.ConnectionHolder;
-import com.evgenykochergin.moneytransfer.persistance.exception.ConnectionHolderCloseConnection;
+import com.evgenykochergin.moneytransfer.persistance.exception.ConnectionHolderCloseConnectionException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class ConnectionHolderTest {
 
     @Test
     public void cannotCloseNotOpenedConnection() {
-        exception.expect(ConnectionHolderCloseConnection.class);
+        exception.expect(ConnectionHolderCloseConnectionException.class);
         exception.expectMessage(containsString("Cannot close not opened connection"));
         this.connectionHolder.closeConnection();
     }
