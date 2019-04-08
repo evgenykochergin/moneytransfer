@@ -1,5 +1,6 @@
 package com.evgenykochergin.moneytransfer.rest;
 
+import com.evgenykochergin.moneytransfer.TestUtils;
 import com.evgenykochergin.moneytransfer.dto.AccountRequestDto;
 import com.evgenykochergin.moneytransfer.dto.AccountResponseDto;
 import com.evgenykochergin.moneytransfer.dto.AccountTransferDto;
@@ -26,23 +27,26 @@ import static org.hamcrest.Matchers.equalTo;
 public class AccountRestEndpointTest {
 
     private static WebServer webServer;
+    private static int port;
 
-    private final RequestSpecification requestSpecification = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(8080)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .build();
+    private static RequestSpecification requestSpecification;
 
     @BeforeClass
     public static void setUp() throws Exception {
+        port = TestUtils.findFreePort();
         webServer = WebServer.start(
-                8080,
+                port,
                 () -> Guice.createInjector(
                         new GuiceServetModule(),
                         new CoreModule(),
                         new AccountModule())
         );
+        requestSpecification = new RequestSpecBuilder()
+                .setBaseUri("http://localhost")
+                .setPort(port)
+                .setAccept(ContentType.JSON)
+                .setContentType(ContentType.JSON)
+                .build();
     }
 
     @AfterClass
