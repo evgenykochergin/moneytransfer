@@ -24,3 +24,5 @@ Implicit requirements:
 - **JUnit** - unit testing
 - **Hamcrest** - flexible unit testing extension
 - **REST-assured** - testing and validation of REST services
+
+
